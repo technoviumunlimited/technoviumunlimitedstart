@@ -2,7 +2,7 @@
   "profiles": {
     "technoviumunlimitedstart": {
       "commandName": "Project",
-      "commandLineArgs": "technoviumunlimited:/gameid=dskjfndjfns/token=fdknfkdsjndsjkvsdjkvfdshvffffjhdsbhdshdfshdfdhshfdfdhjfdfdsfdhjfdshjhjfdhfdhjfdhjfds"
+      "commandLineArgs": "technoviumunlimitedstart/gameid=dskjfndjfns/token=fdknfkdsjndsjkvsdjkvfdshvffffjhdsbhdshdfshdfdhshfdfdhjfdfdsfdhjfdshjhjfdhfdhjfdhjfds"
     }
   }
 }

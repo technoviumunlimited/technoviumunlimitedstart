@@ -17,6 +17,7 @@ using System.IO;
 using System.Net;
 using System.ComponentModel;
 using System.IO.Compression;
+using System.Threading;
 
 namespace technoviumunlimitedstart
 {
@@ -33,14 +34,22 @@ namespace technoviumunlimitedstart
     public partial class MainWindow : Window
     {
         StartupEventArgs startupEventArgs;
+        private static string startMap                  = "start";
+        private static string gameMap                   = "game";
 
-        private string rootPath;
-        private string gameZip;
-        private string gameExe;
-        private string versionFile;
+        // game version variables
+        private static string rootPathGame              = Environment.ExpandEnvironmentVariables("%AppData%\\TechnoviumUnlimited\\" + gameMap).ToString();
+        private static string gameZipGame               = System.IO.Path.Combine(rootPathGame, "Version.txt").ToString();
+        private static string gameExeGame               = System.IO.Path.Combine(rootPathGame, "Build", "Technovium unlimited.exe").ToString();
+        private static string versionFileGame           = System.IO.Path.Combine(rootPathGame, "Version.txt").ToString();
+        private static string onlineVersionFileGame     = "https://raw.githubusercontent.com/technoviumunlimited/technoviumunlimited_unity3d/main/version.txt";
 
-        private string UriScheme = "TechnoviumUnlimited";
-        private string FriendlyName = "Technovim Unlimited";
+        // technoviumunlimitedstart version variables
+        private static string rootPathStart             = Environment.ExpandEnvironmentVariables("%AppData%\\TechnoviumUnlimited\\" + startMap).ToString();
+        private static string gameZipStart              = System.IO.Path.Combine(rootPathStart, "Version.txt").ToString();
+        private static string gameExeStart              = System.IO.Path.Combine(rootPathStart, "start", "technoviumunlimitedstart.exe").ToString();
+        private static string versionFileStart          = System.IO.Path.Combine(rootPathStart, "Version.txt").ToString();
+        private static string onlineVersionFileStart    = "https://api.technoviumunlimited.nl/start";
 
         private LauncherStatus _status;
         internal LauncherStatus Status
@@ -71,111 +80,139 @@ namespace technoviumunlimitedstart
         public MainWindow(StartupEventArgs e)
         {
             InitializeComponent();
-            SetRegister();
+            if (!Directory.Exists(rootPathGame))
+            {
+                DirectoryInfo di = Directory.CreateDirectory(rootPathGame);
+                Console.WriteLine("The directory was created successfully at {0}.", Directory.GetCreationTime(rootPathGame));
+            }
+
+            if (!Directory.Exists(rootPathStart))
+            {
+                DirectoryInfo di = Directory.CreateDirectory(rootPathStart);
+                Console.WriteLine("The directory was created successfully at {0}.", Directory.GetCreationTime(rootPathStart));
+            }
+
             startupEventArgs = e;
             getArguments();
+            //check start (game launcher) update
+            CheckForUpdatesStart();
 
+            //check unity game update
             CheckForUpdates();
+            
+            //startGameAndCloseCurrent();
         }
 
         public void getArguments()
         {
+            File.Delete(rootPathGame + "\\st.daliop");
             for (int i = 0; i != startupEventArgs.Args.Length; ++i)
             {
-                ArgsButton.Content = startupEventArgs.Args[i];
                 Debug.WriteLine(startupEventArgs.Args[i]);
                 IList<string> args = startupEventArgs.Args[i].Split('/').Reverse().ToList<string>();
+               // Debug.WriteLine(s);
+                TextWriter tw = new StreamWriter(rootPathGame + "\\st.daliop");
                 foreach (String s in args)
                 {
-                    //write txt file to 
-                    Debug.WriteLine(s);
+                    if(s != "technoviumunlimitedstart:")
+                    {
+                        tw.WriteLine(s);
+                    }                    
                 }
-
+                tw.Close();
             }
         }
         private void Application_Exit(object sender, ExitEventArgs e)
         {
             //DeleteRegiter();
         }
-
-        private void DeleteRegiter()
+        private void CheckForUpdatesStart()
         {
-            //Registry.ClassesRoot.DeleteSubKey(UriScheme);
-            //SetRegister();
-        }
+            Debug.WriteLine("------------------------> CheckForUpdatesStart <----------------------------------");
+            Debug.WriteLine(versionFileStart);
+            Debug.WriteLine(onlineVersionFileStart);
 
-        private void SetRegister()
-        {
-            rootPath = Environment.ExpandEnvironmentVariables("%AppData%\\TechnoviumUnlimited\\game");//Directory.GetCurrentDirectory();
-            //var key = Registry.ClassesRoot.CreateSubKey(UriScheme);
-            //Registry.ClassesRoot
-
-            // Replace typeof(App) by the class that contains the Main method or any class located in the project that produces the exe.
-            // or replace typeof(App).Assembly.Location by anything that gives the full path to the exe
-            //string applicationLocation = rootPath + "\\Starter\\TechnoviumUnlimitedLauncher.exe";
-            //key.SetValue("URL Protocol", "/f");
-            //var command = key.CreateSubKey("shell").CreateSubKey("open").CreateSubKey("command");
-            //command.SetValue("", applicationLocation);
-
-            //key.SetValue("", "URL:" + FriendlyName);
-            //key.SetValue("URL Protocol", "");
-            /*
-            using (var defaultIcon = key.CreateSubKey("DefaultIcon"))
+            if (File.Exists(versionFileStart))
             {
-                defaultIcon.SetValue("", applicationLocation + ",1");
-            }*/
-
-            //var command = scheme.CreateSubKey("shell").CreateSubKey("open").CreateSubKey("command");
-            //command.SetValue("", $"\"{Assembly.GetExecutingAssembly().Location}\" \"%1\"");
-
-            /*using (var commandKey = key.CreateSubKey(@"shell\open\command"))
-            {
-                commandKey.SetValue("", "\"" + applicationLocation + "\" \"%1\"");
-            }*/
-
-
-            if (!Directory.Exists(rootPath))
-            {
-                DirectoryInfo di = Directory.CreateDirectory(rootPath);
-                Console.WriteLine("The directory was created successfully at {0}.", Directory.GetCreationTime(rootPath));
-            }
-
-            versionFile = System.IO.Path.Combine(rootPath, "Version.txt");
-            gameZip = System.IO.Path.Combine(rootPath, "Build.zip");
-            gameExe = System.IO.Path.Combine(rootPath, "Build", "Technovium unlimited.exe");
-            Debug.WriteLine("gameExe: ");
-            Debug.WriteLine(gameExe);
-            Debug.WriteLine("gameZip: ");
-            Debug.WriteLine(gameZip);
-            Debug.WriteLine("versionFile: ");
-            Debug.WriteLine(versionFile);
-            Debug.WriteLine("rootpath: ");
-            Debug.WriteLine(rootPath);
-
-        }
-        private void CheckForUpdates()
-        {
-            Debug.WriteLine("------------------------> CheckForUpdates <----------------------------------");
-            if (File.Exists(versionFile))
-            {
-                Version localVersion = new Version(File.ReadAllText(versionFile));
-                VersionText.Text = localVersion.ToString();
+                Version localVersionStart = new Version(File.ReadAllText(versionFileStart));
+                VersionText.Text = localVersionStart.ToString();
+                Debug.WriteLine("------------------------> CheckForUpdates localVersionStart.ToString() <----------------------------------");
+                Debug.WriteLine(localVersionStart.ToString());
+               
+                
+                
                 try
                 {
-                    WebClient webClient = new WebClient();
-                    Version onlineVersion = new Version(webClient.DownloadString("https://raw.githubusercontent.com/technoviumunlimited/technoviumunlimited_unity3d/main/version.txt"));
-
-                    if (onlineVersion.IsDifferentThan(localVersion))
+                    WebClient webClientStart = new WebClient();
+                    Version onlineVersionStart = new Version(webClientStart.DownloadString(onlineVersionFileStart));
+                    Debug.WriteLine("------------------------> CheckForUpdates onlineVersionStart.ToString() <----------------------------------");
+                    Debug.WriteLine("::::"+onlineVersionStart.ToString());
+                    if (onlineVersionStart.IsDifferentThan(localVersionStart))
                     {
-                        InstallGameFiles(true, onlineVersion);
+                        if (MessageBox.Show("Update Availible", "Question", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.No)
+                        {
+                            //do no stuff
+                        }
+                        else
+                        {
+                            var target = "https://github.com/technoviumunlimited/TechnoviumUnlimitedInstaller/releases/download/0.0.1/TechnoviumUnlimitedInstaller.exe";
+                            try
+                            {
+                                
+                                System.Diagnostics.Process.Start("explorer", target);
+                                //TODO download installer and install it without browser
+                            }
+                            catch (System.ComponentModel.Win32Exception noBrowser)
+                            {
+                                if (noBrowser.ErrorCode == -2147467259)
+                                    MessageBox.Show(noBrowser.Message);
+                            }
+                            catch (System.Exception other)
+                            {
+                                MessageBox.Show(other.Message);
+                            }
+                            Close(); //TODO try to close without errors
+                            //do yes stuff
+                        }
                     }
                     else
                     {
-                        Status = LauncherStatus.ready;
+                        //Status = LauncherStatus.ready;
                     }
                 }
                 catch (Exception ex)
                 {
+                    //Status = LauncherStatus.failed;
+                    MessageBox.Show($"Error checking for game updates: {ex}");
+                }
+            }
+            else
+            {
+                //InstallGameFiles(false, Version.zero);
+                // TODO messagebox to download installer
+            }
+        }
+        private void CheckForUpdates()
+        {
+            Debug.WriteLine("------------------------> CheckForUpdates <----------------------------------");
+            Debug.WriteLine(versionFileGame);
+            Debug.WriteLine(onlineVersionFileGame);
+
+            if (File.Exists(versionFileGame)) {
+                Version localVersionGame = new Version(File.ReadAllText(versionFileGame));
+                VersionText.Text = localVersionGame.ToString();
+                try {
+                    WebClient webClientGame = new WebClient();
+                    Version onlineVersionGame = new Version(webClientGame.DownloadString(onlineVersionFileGame));
+
+                    if (onlineVersionGame.IsDifferentThan(localVersionGame)) {
+                        InstallGameFiles(true, onlineVersionGame);
+                    } else {
+                        Status = LauncherStatus.ready;
+
+                    }
+                }
+                catch (Exception ex) {
                     Status = LauncherStatus.failed;
                     MessageBox.Show($"Error checking for game updates: {ex}");
                 }
@@ -198,11 +235,10 @@ namespace technoviumunlimitedstart
                 else
                 {
                     Status = LauncherStatus.downloadingGame;
-                    _onlineVersion = new Version(webClient.DownloadString("https://raw.githubusercontent.com/technoviumunlimited/technoviumunlimited_unity3d/main/version.txt"));
+                    _onlineVersion = new Version(webClient.DownloadString(onlineVersionFileGame));
                 }
-
                 webClient.DownloadFileCompleted += new AsyncCompletedEventHandler(DownloadGameCompletedCallback);
-                webClient.DownloadFileAsync(new Uri("https://github.com/technoviumunlimited/technoviumunlimited_unity3d/releases/download/0.0.1/Build.zip"), gameZip, _onlineVersion);
+                webClient.DownloadFileAsync(new Uri("https://github.com/technoviumunlimited/technoviumunlimited_unity3d/releases/download/"+ _onlineVersion.ToString()  +"/Build.zip"), gameZipGame, _onlineVersion);
             }
             catch (Exception ex)
             {
@@ -214,13 +250,11 @@ namespace technoviumunlimitedstart
         {
             try
             {
-                string onlineVersion = ((Version)e.UserState).ToString();
-                ZipFile.ExtractToDirectory(gameZip, rootPath, true);
-                File.Delete(gameZip);
-
-                File.WriteAllText(versionFile, onlineVersion);
-
-                VersionText.Text = onlineVersion;
+                string onlineVersionGame = ((Version)e.UserState).ToString();
+                ZipFile.ExtractToDirectory(gameZipGame, rootPathGame, true);
+                File.Delete(gameZipGame);
+                File.WriteAllText(versionFileGame, onlineVersionGame);
+                VersionText.Text = onlineVersionGame;
                 Status = LauncherStatus.ready;
             }
             catch (Exception ex)
@@ -229,12 +263,28 @@ namespace technoviumunlimitedstart
                 MessageBox.Show($"Error finishing download: {ex}");
             }
         }
+
+        private void startGameAndCloseCurrent()
+        {
+            if (File.Exists(gameExeGame) && Status == LauncherStatus.ready)
+            {
+                Debug.WriteLine("startGameAndCloseCurrent()");
+                //start game and close this one
+                ProcessStartInfo startInfo = new ProcessStartInfo(gameExeGame);
+                startInfo.WorkingDirectory = System.IO.Path.Combine(rootPathGame, "Build");
+                Debug.WriteLine("startInfo.ToString():");
+                Debug.WriteLine(startInfo.ToString());
+                Process.Start(startInfo);
+                Thread.Sleep(1000);
+                Close();
+            }
+        }
         private void Play_ButtonClick(object sender, RoutedEventArgs e)
         {
-            if (File.Exists(gameExe) && Status == LauncherStatus.ready)
+            if (File.Exists(gameExeGame) && Status == LauncherStatus.ready)
             {
-                ProcessStartInfo startInfo = new ProcessStartInfo(gameExe);
-                startInfo.WorkingDirectory = System.IO.Path.Combine(rootPath, "Build");
+                ProcessStartInfo startInfo = new ProcessStartInfo(gameExeGame);
+                startInfo.WorkingDirectory = System.IO.Path.Combine(rootPathGame, "Build");
                 Debug.WriteLine("startInfo.ToString():");
                 Debug.WriteLine(startInfo.ToString());
                 Process.Start(startInfo);

@@ -8,10 +8,12 @@
 
   <ItemGroup>
     <None Remove="images\bg.jpg" />
+    <None Remove="images\logo.png" />
   </ItemGroup>
 
   <ItemGroup>
     <Resource Include="images\bg.jpg" />
+    <Resource Include="images\logo.png" />
   </ItemGroup>
 
 </Project>
